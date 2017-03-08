@@ -14,7 +14,7 @@ add_subdirectory(global_communication)
 add_subdirectory(performance)
 
 # modcc tests
-add_subdirectory(modcc)
+#add_subdirectory(modcc)
 
 # Proposed additional test types:
 

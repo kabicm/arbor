@@ -247,19 +247,41 @@ public:
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) {
         auto handle = get_probe_handle(probe_id);
 
-        // We can have multiple samples for the same handle.
-        // We sample with the minimum dt
-
-
-
         auto sampler_index = uint32_t(samplers_.size());
-        samplers_.push_back({handle, s});
+        samplers_.push_back({ handle, s });
         sampler_start_times_.push_back(start_time);
-        //TODOW: 
-        //sample_dt.push_back();
-        sample_events_.push({sampler_index, start_time});
-    }
 
+        // If we have start time of 0.0 we need to start sampling from the start
+        float sim_start_t = 0.0;
+        if (start_time == sim_start_t)
+        {
+            // We need to know the handle idx, it can be shared between samplers
+            auto handle_idx = handle_partition_lookup(probe_handle_divisions_, probe_id);
+            // Get the next time we must sample from the sampler_function
+
+            auto next = s(sim_start_t, 
+                sample_cache_[handle_idx].front().second);
+
+            if (next) 
+            {   // if we want to sample more, push the sample event
+                sample_events_.push({ sampler_index, *next } );
+
+                // But also store the delta because we need to tell the cell
+                // to start measuring
+                auto dt = *next - sim_start_t;
+                // if this dt is smaller then what we have in the current dt vector
+                if (dt < sampler_handler_dt_[handle_idx])
+                {
+                    sampler_handler_dt_[handle_idx] = dt;
+                }
+            }
+        }
+        else
+        {
+           sample_events_.push({ sampler_index, start_time });
+        }
+
+    }
     void remove_samplers() {
         sample_events_.clear();
         samplers_.clear();
