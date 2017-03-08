@@ -31,7 +31,8 @@ public:
     using source_id_type = cell_member_type;
 
     using time_type = float;
-    using sampler_function = std::function<util::optional<time_type>(time_type, double)>;
+    using sample_type = double;
+    using sampler_function = std::function<util::optional<time_type>(time_type, sample_type)>;
 
     struct spike_source_type {
         source_id_type source_id;
@@ -51,12 +52,27 @@ public:
         std::size_t n_detectors =
             algorithms::sum(util::transform_view(cells, [](const cell& c) { return c.detectors().size(); }));
 
-        // Allocate space to store handles.
+        // Allocate space to store handles / probes info.
         detector_handles_.resize(n_detectors);
         target_handles_.resize(n_targets);
+
+        sample_cache_.resize(n_probes);  // nr of handles
+        sampler_handler_dt_.resize(n_probes);
         probe_handles_.resize(n_probes);
+        //samplers_ size is not known before hand, needs to be dynamic
+ 
 
         cell_.initialize(cells, detector_handles_, target_handles_, probe_handles_);
+
+        // initialize the sample_cache_
+        for (auto& item : sample_cache_) {
+            // Insert the first sample (is always on t=0.0
+            item.push_back(std::make_pair( 0.0, 0.0));  // For now push zero: We need to 
+            //poll the underlaying lowered cell for the default start value
+        }
+        // We cannot set the dt: they sample rates are only known after adding
+        // of the samplers
+
 
         // Create spike detectors and associate them with globally unique source ids.
         cell_gid_type source_gid = gid_base_;
@@ -89,17 +105,30 @@ public:
     }
 
     void advance(time_type tfinal, time_type dt) {
+        
+        // Advance the cell state
         while (cell_.time()<tfinal) {
             // take any pending samples
             time_type cell_time = cell_.time();
-
             PE("sampling");
+            // We have a queue of sample events
+            // they keep track of when we want to have a value
+            // We want to have a value when:
+            //  - When the time exceeds the sample time.
+            //   event is a sample time.
+            // Move out of the loop
             while (auto m = sample_events_.pop_if_before(cell_time)) {
                 auto& s = samplers_[m->sampler_index];
                 EXPECTS((bool)s.sampler);
-                auto next = s.sampler(cell_.time(), cell_.probe(s.handle));
+                auto next = // the next time to sample (can depend on whatever) can be never or a time
+                            //Sampler is the cpu side: writes to file or does some online calculation: Its user space
+                            // we can have multiple samplers per probe
+                    s.sampler(cell_.time(), // now store the value with the time stamp
+                        cell_.probe( // Gives the number ( this function thus has a send and receive on the gpu)
+                            s.handle) // Rich pointer to what we want to sample
+                    );  // This talks to the cell (on GPU)
 
-                if (next) {
+                if (next) { // If we want to sample more, push the sample event
                     m->time = std::max(*next, cell_time);
                     sample_events_.push(*m);
                 }
@@ -143,6 +172,53 @@ public:
             PL();
         }
 
+        // Get the sampler handler data from the gpu
+
+        // process the data
+        //while (auto m = sample_events_.pop_if_before(tfinal)) {  //
+        //    auto& s = samplers_[m->sampler_index];
+        //    expects((bool)s.sampler);
+        //    // find the sample in cache which is the closest by
+
+
+
+        //    auto next = // the next time to sample (can depend on whatever) can be never or a time
+        //                //sampler is the cpu side: writes to file or does some online calculation: its user space
+        //                // we can have multiple samplers per probe
+        //        s.sampler(cell_.time(), // now store the value with the time stamp
+        //            cell_.probe( // gives the number ( this function thus has a send and receive on the gpu)
+        //                s.handle) // rich pointer to what we want to sample
+        //        );  // this talks to the cell (on gpu)
+
+        //    if (next) { // if we want to sample more, push the sample event
+        //        m->time = std::max(*next, cell_time);
+        //        sample_events_.push(*m);
+        //    }
+        //}
+
+
+
+        // Process the data to the samplers
+
+        // //PE("sampling");
+        // // Pseudo code
+        // // 1 Process all sample events for the previous time step
+
+        // // 2 Set all sampling dt, that are started in the next time step
+
+        // auto start_time_it = sampler_start_times_.begin();
+        // auto start_time_end = sampler_start_times_.end();
+        // auto samplers_it = samplers_.begin();
+        // auto samplers_end = samplers_.end();
+
+        //while (start_time_it != start_time_end &&
+        //       samplers_it   != samplers_end)  // Should be the same size
+        // {
+
+        // }
+
+
+
     }
 
     template <typename R>
@@ -171,9 +247,16 @@ public:
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) {
         auto handle = get_probe_handle(probe_id);
 
+        // We can have multiple samples for the same handle.
+        // We sample with the minimum dt
+
+
+
         auto sampler_index = uint32_t(samplers_.size());
         samplers_.push_back({handle, s});
         sampler_start_times_.push_back(start_time);
+        //TODOW: 
+        //sample_dt.push_back();
         sample_events_.push({sampler_index, start_time});
     }
 
@@ -189,6 +272,8 @@ public:
         for(uint32_t i=0u; i<samplers_.size(); ++i) {
             sample_events_.push({i, sampler_start_times_[i]});
         }
+        // TODOW
+        // push dt to the gpu
     }
 
     value_type probe(cell_member_type probe_id) const {
@@ -214,6 +299,15 @@ private:
     /// pending samples to be taken
     event_queue<sample_event<time_type>> sample_events_;
     std::vector<time_type> sampler_start_times_;
+
+    // For each handler the current sampling dt, we use only a single dt
+    // for each handler (with possible multiple samplers)
+    std::vector<time_type> sampler_handler_dt_;
+
+    // Per sampler handler cache of samples, will be filled per
+    // time step with data
+    std::vector<std::vector<std::pair<time_type, sample_type>>> sample_cache_;
+
 
     /// the global id of the first target (e.g. a synapse) in this group
     iarray first_target_gid_;

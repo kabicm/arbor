@@ -93,6 +93,9 @@ public:
         return (this->*h.first)[h.second];
     }
 
+    // TODOW: set_probe_dt()
+    //void set_probe_dt(double dt);
+
     /// integrate all cell state forward in time
     void advance(double dt);
 
