@@ -64,7 +64,7 @@ public:
 
     using detector_handle = size_type;
     using target_handle = std::pair<size_type, size_type>;
-    using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
+    using probe_handle = std::tuple<const array fvm_multicell::*, size_type, std::size_t>;
 
     fvm_multicell() = default;
 
@@ -90,7 +90,11 @@ public:
     }
 
     value_type probe(probe_handle h) const {
-        return (this->*h.first)[h.second];
+        return (this->*std::get<0>(h))[std::get<1>(h)];
+    }
+
+    void set_probe_dt(probe_handle h, value_type dt) {
+        // insert into the internal storage
     }
 
     // TODOW: set_probe_dt()
@@ -566,17 +570,18 @@ void fvm_multicell<Backend>::initialize(
             EXPECTS(probes_count < probes_size);
 
             auto comp = comp_ival.first+find_cv_index(probe.location, graph);
+            // increment the probes_count here, reduces duplication
             switch (probe.kind) {
             case probeKind::membrane_voltage:
-                *probe_hi++ = {&fvm_multicell::voltage_, comp};
+                *probe_hi++ = std::make_tuple(&fvm_multicell::voltage_, comp, ++probes_count);
                 break;
             case probeKind::membrane_current:
-                *probe_hi++ = {&fvm_multicell::current_, comp};
+                *probe_hi++ = std::make_tuple(&fvm_multicell::current_, comp, ++probes_count);
                 break;
             default:
+                // but would have to decrease here to have a valid state
                 throw std::logic_error("unrecognized probeKind");
             }
-            ++probes_count;
         }
     }
 

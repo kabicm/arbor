@@ -12,9 +12,9 @@
 #include <spike.hpp>
 #include <spike_source.hpp>
 #include <util/debug.hpp>
+#include <util/optional.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
-
 #include <profiling/profiler.hpp>
 
 namespace nest {
@@ -51,11 +51,11 @@ public:
         std::size_t n_targets = target_handle_divisions_.back();
         std::size_t n_detectors =
             algorithms::sum(util::transform_view(cells, [](const cell& c) { return c.detectors().size(); }));
-
-        // Allocate space to store handles / probes info.
+       
         detector_handles_.resize(n_detectors);
         target_handles_.resize(n_targets);
 
+        // Allocate space to store handles / probes info.
         sample_cache_.resize(n_probes);  // nr of handles
         sampler_handler_dt_.resize(n_probes);
         probe_handles_.resize(n_probes);
@@ -105,7 +105,12 @@ public:
     }
 
     void advance(time_type tfinal, time_type dt) {
-        
+        // Push the dt to the implementation before we start the computation loop
+        for (auto entry : probe_handles_)
+        {
+
+        }
+
         // Advance the cell state
         while (cell_.time()<tfinal) {
             // take any pending samples
@@ -196,29 +201,6 @@ public:
         //    }
         //}
 
-
-
-        // Process the data to the samplers
-
-        // //PE("sampling");
-        // // Pseudo code
-        // // 1 Process all sample events for the previous time step
-
-        // // 2 Set all sampling dt, that are started in the next time step
-
-        // auto start_time_it = sampler_start_times_.begin();
-        // auto start_time_end = sampler_start_times_.end();
-        // auto samplers_it = samplers_.begin();
-        // auto samplers_end = samplers_.end();
-
-        //while (start_time_it != start_time_end &&
-        //       samplers_it   != samplers_end)  // Should be the same size
-        // {
-
-        // }
-
-
-
     }
 
     template <typename R>
@@ -253,39 +235,38 @@ public:
 
         // If we have start time of 0.0 we need to start sampling from the start
         float sim_start_t = 0.0;
-        if (start_time == sim_start_t)
-        {
+        if (start_time == sim_start_t) {
             // We need to know the handle idx, it can be shared between samplers
             auto handle_idx = handle_partition_lookup(probe_handle_divisions_, probe_id);
             // Get the next time we must sample from the sampler_function
-
             auto next = s(sim_start_t, 
                 sample_cache_[handle_idx].front().second);
 
-            if (next) 
-            {   // if we want to sample more, push the sample event
+            if (next) {   // if we want to sample more, push the sample event
                 sample_events_.push({ sampler_index, *next } );
 
                 // But also store the delta because we need to tell the cell
                 // to start measuring
                 auto dt = *next - sim_start_t;
                 // if this dt is smaller then what we have in the current dt vector
-                if (dt < sampler_handler_dt_[handle_idx])
-                {
+                if (dt < sampler_handler_dt_[handle_idx].get()) {
                     sampler_handler_dt_[handle_idx] = dt;
                 }
             }
         }
-        else
-        {
+        else {
            sample_events_.push({ sampler_index, start_time });
         }
 
     }
+
     void remove_samplers() {
         sample_events_.clear();
         samplers_.clear();
         sampler_start_times_.clear();
+        sampler_handler_dt_.clear();
+        sample_cache_.clear();
+        //TODOW: do we need to clear more? forward to loward for instance?
     }
 
     void reset_samplers() {
@@ -298,6 +279,7 @@ public:
         // push dt to the gpu
     }
 
+    // Get opaque handle to the lowered cell handle
     value_type probe(cell_member_type probe_id) const {
         return cell_.probe(get_probe_handle(probe_id));
     }
@@ -324,7 +306,7 @@ private:
 
     // For each handler the current sampling dt, we use only a single dt
     // for each handler (with possible multiple samplers)
-    std::vector<time_type> sampler_handler_dt_;
+    std::vector<nest::mc::util::optional<time_type>> sampler_handler_dt_;
 
     // Per sampler handler cache of samples, will be filled per
     // time step with data

@@ -70,14 +70,14 @@ TEST(probe, fvm_multicell)
     // direct queries of voltage and current
     // to be equal in fvm cell
 
-    EXPECT_EQ(lcell.voltage()[probes[0].second], lcell.probe(probes[0]));
-    EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
-    EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
+    EXPECT_EQ(lcell.voltage()[std::get<1>(probes[0])], lcell.probe(probes[0]));
+    EXPECT_EQ(lcell.voltage()[std::get<1>(probes[1])], lcell.probe(probes[1]));
+    EXPECT_EQ(lcell.current()[std::get<1>(probes[2])], lcell.probe(probes[2]));
 
     lcell.advance(0.05);
 
-    EXPECT_EQ(lcell.voltage()[probes[0].second], lcell.probe(probes[0]));
-    EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
-    EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
+    EXPECT_EQ(lcell.voltage()[std::get<1>(probes[0])], lcell.probe(probes[0]));
+    EXPECT_EQ(lcell.voltage()[std::get<1>(probes[1])], lcell.probe(probes[1]));
+    EXPECT_EQ(lcell.current()[std::get<1>(probes[2])], lcell.probe(probes[2]));
 }
 
