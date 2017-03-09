@@ -51,6 +51,15 @@ __global__ void matrix_solve(matrix_solve_param_pack<T, I> params);
 template <typename T, typename I>
 __global__ void assemble_matrix(matrix_update_param_pack<T, I> params, T dt);
 
+template <typename T, typename I>
+__global__ void sample_step_gpu(size_t samples_per_handle,
+    double time,
+    double *data,
+    const double * start,
+    const double * dt,
+    const double **adress);
+
+
 struct backend {
     /// define the real and index types
     using value_type = double;
@@ -136,10 +145,22 @@ struct backend {
         view data,
         view start,
         view dt,
-        pview adres
+        pview address
     )
     {
-    
+        auto const block_dim = 96;
+        // TODO: why the 96 for the 
+        auto const grid_dim = (n_active_measurements + block_dim - 1) / block_dim;
+
+        sample_step_gpu<value_type, size_type> <<<grid_dim, block_dim >>>(
+            samples_per_handle,
+            time,
+            data.data(),
+            start.data(),
+            dt.data(),
+            address.data()
+            );
+
     }
 
 
@@ -240,18 +261,17 @@ void matrix_solve(matrix_solve_param_pack<T, I> params) {
 /// GPU implementation of sampler
 template <typename T, typename I>
 __global__
-void sample_step(
+void sample_step_gpu(
     size_t samples_per_handle,
-    size_t n_active_measurements,
+    double time,
     double *data,
-    const double **adress,
+    const double * start,
     const double * dt,
-    const double * start
+    const double **adress
     ) {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
 
-
-    __syncthreads();
+    //__syncthreads();
 
 }
 
