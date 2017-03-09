@@ -138,14 +138,10 @@ public:
         h_probe_adress_ = parray(n_active_measurements);
         memory::copy(tmp_probe_adress, h_probe_adress_);
         
-
-
-
         // The upperbound for the number of active samples in to be retrieved
         // is tstep / dt + 1 (because the start might be before tstart)
-
-        auto max_samples = int(floor(step_dt / min_sample_dt)) + 1;
-        //h_sample_data_ = array()
+        samples_per_handle = size_t(floor(step_dt / min_sample_dt)) + 1;
+        h_sample_data_ = array(n_active_measurements * samples_per_handle, 0);
 
     }
     /// integrate all cell state forward in time
@@ -280,7 +276,7 @@ private:
     parray h_probe_adress_;
 
     array h_sample_data_;
-
+    size_t samples_per_handle;
 
     /// the set of mechanisms present in the cell
     std::vector<mechanism> mechanisms_;
