@@ -95,15 +95,14 @@ public:
     }
 
     void set_probe_pars(probe_handle h, value_type dt, value_type start) {
-        probe_dt_[std::get<2>(h)] = dt;
-        probe_start_[std::get<2>(h)] = start;
-        //// FIXME: TODO: MAGIC
-        //// Ok, so the lower cell implemention does not know anything about
-        //// samples. So we give the backend the sample time, start and the mem
-        //// value to watch. This can then be filled as need be
-        //// What we do here is grab the raw pointer value of the data array
-        //// we want to sample and add the offset to get the correct mem adress
-        probe_adress_[std::get<2>(h)] = (this->*std::get<0>(h)).data() + std::get<1>(h);
+        probe_data_[std::get<2>(h)] = std::make_tuple(start, dt, 
+            //// FIXME: TODO: MAGIC
+            //// Ok, so the lower cell implemention does not know anything about
+            //// samples. So we give the backend the sample time, start and the mem
+            //// value to watch. This can then be filled as need be
+            //// What we do here is grab the raw pointer value of the data array
+            //// we want to sample and add the offset to get the correct mem adress         
+            (this->*std::get<0>(h)).data() + std::get<1>(h));
     }
 
     /// create and start the sampler recording on the backend
@@ -248,9 +247,7 @@ private:
 
     // Internal storage for the dt we want to sample with for each probe
     // maps from id to value
-    std::map<size_type, value_type> probe_dt_;
-    std::map<size_type, value_type> probe_start_;
-    std::map<size_type, const double*> probe_adress_;
+    std::map<size_type, std::tuple<value_type, value_type, const double* > > probe_data_;
 
     /// Compact representation of the control volumes into which a segment is
     /// decomposed. Used to reconstruct the weights used to convert current
