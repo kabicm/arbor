@@ -274,6 +274,7 @@ private:
     array h_probe_start_;
     array h_probe_dt_;
     parray h_probe_adress_;
+    double previous_dt_ = 1.0; // very large value only of interest for the first step should not matter reallt
 
     array h_sample_data_;
     size_t samples_per_handle;
@@ -830,11 +831,12 @@ void fvm_multicell<Backend>::advance(double dt) {
         samples_per_handle,
         n_active_measurements,
         t_,
+        previous_dt_,
         h_sample_data_,
         h_probe_start_,
         h_probe_dt_,
         h_probe_adress_);
-
+    previous_dt_ = dt;
     PE("current");
     memory::fill(current_, 0.);
 

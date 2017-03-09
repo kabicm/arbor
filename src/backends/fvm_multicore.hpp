@@ -141,6 +141,7 @@ struct backend {
         size_t samples_per_handle,
         size_t n_active_measurements,
         double time,
+        double previous_dt,
         view data,
         view start,
         view dt,

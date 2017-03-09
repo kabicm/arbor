@@ -54,6 +54,7 @@ __global__ void assemble_matrix(matrix_update_param_pack<T, I> params, T dt);
 template <typename T, typename I>
 __global__ void sample_step_gpu(size_t samples_per_handle,
     double time,
+    double previous_dt,
     double *data,
     const double * start,
     const double * dt,
@@ -142,6 +143,7 @@ struct backend {
         size_t samples_per_handle,
         size_t n_active_measurements,
         double time,
+        double previous_dt,
         view data,
         view start,
         view dt,
@@ -155,6 +157,7 @@ struct backend {
         sample_step_gpu<value_type, size_type> <<<grid_dim, block_dim >>>(
             samples_per_handle,
             time,
+            previous_dt,
             data.data(),
             start.data(),
             dt.data(),
@@ -264,12 +267,14 @@ __global__
 void sample_step_gpu(
     size_t samples_per_handle,
     double time,
+    double previous_dt,
     double *data,
     const double * start,
     const double * dt,
     const double **adress
     ) {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
+
 
     //__syncthreads();
 
