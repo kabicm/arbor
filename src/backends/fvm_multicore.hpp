@@ -143,6 +143,7 @@ struct backend {
         double time,
         double previous_dt,
         view data,
+        iview n_samples,
         view start,
         view dt,
         pview adres

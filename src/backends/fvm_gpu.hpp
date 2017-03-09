@@ -52,10 +52,12 @@ template <typename T, typename I>
 __global__ void assemble_matrix(matrix_update_param_pack<T, I> params, T dt);
 
 template <typename T, typename I>
-__global__ void sample_step_gpu(size_t samples_per_handle,
+__global__ void sample_step_gpu(
+    size_t samples_per_handle,
     double time,
     double previous_dt,
     double *data,
+    I * n_samples,
     const double * start,
     const double * dt,
     const double **adress);
@@ -145,6 +147,7 @@ struct backend {
         double time,
         double previous_dt,
         view data,
+        iview n_samples,
         view start,
         view dt,
         pview address
@@ -159,11 +162,11 @@ struct backend {
             time,
             previous_dt,
             data.data(),
+            n_samples.data(),
             start.data(),
             dt.data(),
             address.data()
             );
-
     }
 
 
@@ -269,6 +272,7 @@ void sample_step_gpu(
     double time,
     double previous_dt,
     double *data,
+    I * n_samples,
     const double * start,
     const double * dt,
     const double **adress

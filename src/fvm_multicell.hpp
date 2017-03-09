@@ -136,6 +136,7 @@ public:
         h_probe_start_ = memory::make_const_view(tmp_probe_start);
         h_probe_dt_ = memory::make_const_view(tmp_probe_dt);
         h_probe_adress_ = parray(n_active_measurements);
+        h_n_probe_samples = iarray(n_active_measurements, 0);
         memory::copy(tmp_probe_adress, h_probe_adress_);
         
         // The upperbound for the number of active samples in to be retrieved
@@ -272,6 +273,7 @@ private:
     // size = epoch / min(sample dts) * prb 
 
     array h_probe_start_;
+    iarray h_n_probe_samples;
     array h_probe_dt_;
     parray h_probe_adress_;
     double previous_dt_ = 1.0; // very large value only of interest for the first step should not matter reallt
@@ -833,9 +835,12 @@ void fvm_multicell<Backend>::advance(double dt) {
         t_,
         previous_dt_,
         h_sample_data_,
+        h_n_probe_samples,
         h_probe_start_,
         h_probe_dt_,
         h_probe_adress_);
+
+
     previous_dt_ = dt;
     PE("current");
     memory::fill(current_, 0.);
