@@ -90,16 +90,29 @@ public:
     }
 
     value_type probe(probe_handle h) const {
+        // this->*std::get<0>(h) gets the array with data
         return (this->*std::get<0>(h))[std::get<1>(h)];
     }
 
-    void set_probe_dt(probe_handle h, value_type dt) {
-        // insert into the internal storage
+    void set_probe_pars(probe_handle h, value_type dt, value_type start) {
+        probe_dt_[std::get<2>(h)] = dt;
+        probe_start_[std::get<2>(h)] = start;
+        //// FIXME: TODO: MAGIC
+        //// Ok, so the lower cell implemention does not know anything about
+        //// samples. So we give the backend the sample time, start and the mem
+        //// value to watch. This can then be filled as need be
+        //// What we do here is grab the raw pointer value of the data array
+        //// we want to sample and add the offset to get the correct mem adress
+        probe_adress_[std::get<2>(h)] = (this->*std::get<0>(h)).data() + std::get<1>(h);
     }
 
-    // TODOW: set_probe_dt()
-    //void set_probe_dt(double dt);
+    /// create and start the sampler recording on the backend
+    void start_samplers(double tfinal)
+    {
+        // Create data structure for samples
+        // size = epoch / min(sample dts) * prb 
 
+    }
     /// integrate all cell state forward in time
     void advance(double dt);
 
@@ -222,6 +235,9 @@ private:
     /// the potential in each CV [mV]
     array voltage_;
 
+    //// The dt for each 
+    //array probe_dt_;
+
     /// the set of mechanisms present in the cell
     std::vector<mechanism> mechanisms_;
 
@@ -229,6 +245,12 @@ private:
     std::map<mechanisms::ionKind, ion> ions_;
 
     std::vector<std::pair<const array fvm_multicell::*, size_type>> probes_;
+
+    // Internal storage for the dt we want to sample with for each probe
+    // maps from id to value
+    std::map<size_type, value_type> probe_dt_;
+    std::map<size_type, value_type> probe_start_;
+    std::map<size_type, const double*> probe_adress_;
 
     /// Compact representation of the control volumes into which a segment is
     /// decomposed. Used to reconstruct the weights used to convert current
@@ -441,6 +463,8 @@ void fvm_multicell<Backend>::initialize(
     // initialize storage from total compartment count
     current_ = array(ncomp, 0);
     voltage_ = array(ncomp, resting_potential_);
+    //probe_dt_ = array(size(probe_handles), 0);
+
 
     // create maps for mechanism initialization.
     std::map<std::string, std::vector<segment_cv_range>> mech_map;

@@ -58,6 +58,7 @@ public:
         // Allocate space to store handles / probes info.
         sample_cache_.resize(n_probes);  // nr of handles
         sampler_handler_dt_.resize(n_probes);
+        sampler_handler_start_.resize(n_probes);
         probe_handles_.resize(n_probes);
         //samplers_ size is not known before hand, needs to be dynamic
  
@@ -106,10 +107,25 @@ public:
 
     void advance(time_type tfinal, time_type dt) {
         // Push the dt to the implementation before we start the computation loop
-        for (auto entry : probe_handles_)
-        {
+        auto handle_it = probe_handles_.begin();
+        auto handle_end = probe_handles_.end();
+        auto dt_it = sampler_handler_dt_.begin();
+        auto dt_end = sampler_handler_dt_.end();
+        auto start_it = sampler_handler_start_.begin();
+        auto start_end = sampler_handler_start_.end();
 
+        for (; 
+            handle_it != handle_end || dt_it != dt_end|| start_it != start_end;
+            handle_it++, dt_it++, start_it++)
+        {
+            if (*dt_it){ // When the value is set
+                cell_.set_probe_pars(*handle_it, dt_it->get(), start_it->get());
+            }
         }
+        
+        // start sampling with the now initialized dt
+        cell_.start_samplers(tfinal);
+        
 
         // Advance the cell state
         while (cell_.time()<tfinal) {
@@ -177,30 +193,6 @@ public:
             PL();
         }
 
-        // Get the sampler handler data from the gpu
-
-        // process the data
-        //while (auto m = sample_events_.pop_if_before(tfinal)) {  //
-        //    auto& s = samplers_[m->sampler_index];
-        //    expects((bool)s.sampler);
-        //    // find the sample in cache which is the closest by
-
-
-
-        //    auto next = // the next time to sample (can depend on whatever) can be never or a time
-        //                //sampler is the cpu side: writes to file or does some online calculation: its user space
-        //                // we can have multiple samplers per probe
-        //        s.sampler(cell_.time(), // now store the value with the time stamp
-        //            cell_.probe( // gives the number ( this function thus has a send and receive on the gpu)
-        //                s.handle) // rich pointer to what we want to sample
-        //        );  // this talks to the cell (on gpu)
-
-        //    if (next) { // if we want to sample more, push the sample event
-        //        m->time = std::max(*next, cell_time);
-        //        sample_events_.push(*m);
-        //    }
-        //}
-
     }
 
     template <typename R>
@@ -235,9 +227,17 @@ public:
 
         // If we have start time of 0.0 we need to start sampling from the start
         float sim_start_t = 0.0;
+
+        // We need to know the handle idx, it can be shared between samplers
+        auto handle_idx = handle_partition_lookup(probe_handle_divisions_, probe_id);
+
+        // set starttime if unset or if smaller then known value
+        if (!sampler_handler_start_[handle_idx] ||
+            start_time < sampler_handler_start_[handle_idx].get()) {
+            sampler_handler_start_[handle_idx] = start_time;
+        }
+
         if (start_time == sim_start_t) {
-            // We need to know the handle idx, it can be shared between samplers
-            auto handle_idx = handle_partition_lookup(probe_handle_divisions_, probe_id);
             // Get the next time we must sample from the sampler_function
             auto next = s(sim_start_t, 
                 sample_cache_[handle_idx].front().second);
@@ -248,13 +248,14 @@ public:
                 // But also store the delta because we need to tell the cell
                 // to start measuring
                 auto dt = *next - sim_start_t;
-                // if this dt is smaller then what we have in the current dt vector
-                if (dt < sampler_handler_dt_[handle_idx].get()) {
+                // if this dt is not set or smaller then what we have in the current dt vector
+                if (!sampler_handler_dt_[handle_idx] ||
+                        dt < sampler_handler_dt_[handle_idx].get()) {
                     sampler_handler_dt_[handle_idx] = dt;
                 }
             }
         }
-        else {
+        else { // else delay the sample pushing, we do not need the dt now.
            sample_events_.push({ sampler_index, start_time });
         }
 
@@ -304,14 +305,15 @@ private:
     event_queue<sample_event<time_type>> sample_events_;
     std::vector<time_type> sampler_start_times_;
 
-    // For each handler the current sampling dt, we use only a single dt
+    // For each handler the current sampling dt, we use only a single dt and start
     // for each handler (with possible multiple samplers)
     std::vector<nest::mc::util::optional<time_type>> sampler_handler_dt_;
+    std::vector<nest::mc::util::optional<time_type>> sampler_handler_start_;
 
     // Per sampler handler cache of samples, will be filled per
     // time step with data
     std::vector<std::vector<std::pair<time_type, sample_type>>> sample_cache_;
-
+    
 
     /// the global id of the first target (e.g. a synapse) in this group
     iarray first_target_gid_;
