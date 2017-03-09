@@ -59,7 +59,7 @@ struct backend {
     /// define storage types
     using array  = memory::device_vector<value_type>;
     using iarray = memory::device_vector<size_type>;
-    using parray  = memory::device_vector<value_type*>;
+    using parray  = memory::device_vector<const value_type*>;
     
     using view       = typename array::view_type;
     using const_view = typename array::const_view_type;

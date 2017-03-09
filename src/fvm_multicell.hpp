@@ -136,8 +136,10 @@ public:
         h_probe_start_ = memory::make_const_view(tmp_probe_start);
         h_probe_dt_ = memory::make_const_view(tmp_probe_dt);
         h_probe_adress_ = parray(n_active_measurements);
-        //memory::copy(tmp_probe_adress, h_probe_adress_);
+        memory::copy(tmp_probe_adress, h_probe_adress_);
         
+
+
 
         // The upperbound for the number of active samples in to be retrieved
         // is tstep / dt + 1 (because the start might be before tstart)
