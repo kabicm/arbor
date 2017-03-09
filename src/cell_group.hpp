@@ -124,7 +124,7 @@ public:
         }
         
         // start sampling with the now initialized dt
-        cell_.start_samplers(tfinal);
+        cell_.start_samplers(tfinal - cell_.time());
         
 
         // Advance the cell state

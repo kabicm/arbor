@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <math.h>
 
 #include <algorithms.hpp>
 #include <backends/fvm.hpp>
@@ -55,6 +56,7 @@ public:
 
     /// the container used for values
     using array = typename backend::array;
+    using parray = typename backend::parray;
     using host_array = typename backend::host_array;
 
     /// the container used for indexes
@@ -106,10 +108,42 @@ public:
     }
 
     /// create and start the sampler recording on the backend
-    void start_samplers(double tfinal)
+    void start_samplers(double step_dt)
     {
         // Create data structure for samples
         // size = epoch / min(sample dts) * prb 
+
+        size_t n_active_measurements = probe_data_.size();
+
+        // make_const_view(tmp_face_conductance)
+        // Create temporary container 
+        std::vector<value_type> tmp_probe_start(n_active_measurements, 0.);
+        std::vector<value_type> tmp_probe_dt(n_active_measurements, 0.);
+        std::vector<const double*> tmp_probe_adress(n_active_measurements,NULL);
+
+        value_type min_sample_dt = 9999.0;  // very big number
+        for (auto items : probe_data_) {
+            tmp_probe_start.push_back(std::get<0>(items.second));
+
+            auto dt = std::get<1>(items.second);
+            if (dt < min_sample_dt) {
+                min_sample_dt = dt;
+            }
+            tmp_probe_dt.push_back(dt);
+            tmp_probe_adress.push_back(std::get<2>(items.second));
+        }
+
+        h_probe_start_ = memory::make_const_view(tmp_probe_start);
+        h_probe_dt_ = memory::make_const_view(tmp_probe_dt);
+        h_probe_adress_ = parray(n_active_measurements);
+        //memory::copy(tmp_probe_adress, h_probe_adress_);
+        
+
+        // The upperbound for the number of active samples in to be retrieved
+        // is tstep / dt + 1 (because the start might be before tstart)
+
+        auto max_samples = int(floor(step_dt / min_sample_dt)) + 1;
+        //h_sample_data_ = array()
 
     }
     /// integrate all cell state forward in time
@@ -236,6 +270,15 @@ private:
 
     //// The dt for each 
     //array probe_dt_;
+    // Create data structure for samples
+    // size = epoch / min(sample dts) * prb 
+
+    array h_probe_start_;
+    array h_probe_dt_;
+    parray h_probe_adress_;
+
+    array h_sample_data_;
+
 
     /// the set of mechanisms present in the cell
     std::vector<mechanism> mechanisms_;
