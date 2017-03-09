@@ -23,6 +23,7 @@ struct backend {
     using iarray = memory::host_vector<size_type>;
     using parray = memory::host_vector<const value_type*>;
 
+    using pview = typename parray::view_type;
     using view       = typename array::view_type;
     using const_view = typename array::const_view_type;
 
@@ -133,6 +134,20 @@ struct backend {
         }
 
         return mech_map_.find(name)->second(vec_v, vec_i, array(weights), iarray(node_indices));
+    }
+
+    /// perform a sample of the current time step
+    static void sample_step(
+        size_t samples_per_handle,
+        size_t n_active_measurements,
+        double time,
+        view data,
+        view start,
+        view dt,
+        pview adres
+    )
+    {
+
     }
 
     static bool has_mechanism(const std::string& name) {

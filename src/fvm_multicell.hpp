@@ -113,7 +113,7 @@ public:
         // Create data structure for samples
         // size = epoch / min(sample dts) * prb 
 
-        size_t n_active_measurements = probe_data_.size();
+        n_active_measurements = probe_data_.size();
 
         // make_const_view(tmp_face_conductance)
         // Create temporary container 
@@ -277,6 +277,7 @@ private:
 
     array h_sample_data_;
     size_t samples_per_handle;
+    size_t n_active_measurements;
 
     /// the set of mechanisms present in the cell
     std::vector<mechanism> mechanisms_;
@@ -824,6 +825,16 @@ void fvm_multicell<Backend>::reset() {
 
 template <typename Backend>
 void fvm_multicell<Backend>::advance(double dt) {
+    //To mirror the old implementation: measure at this moment
+    backend::sample_step(
+        samples_per_handle,
+        n_active_measurements,
+        t_,
+        h_sample_data_,
+        h_probe_start_,
+        h_probe_dt_,
+        h_probe_adress_);
+
     PE("current");
     memory::fill(current_, 0.);
 

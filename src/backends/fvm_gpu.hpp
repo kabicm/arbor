@@ -61,6 +61,7 @@ struct backend {
     using iarray = memory::device_vector<size_type>;
     using parray  = memory::device_vector<const value_type*>;
     
+    using pview = typename parray::view_type;
     using view       = typename array::view_type;
     using const_view = typename array::const_view_type;
 
@@ -126,6 +127,21 @@ struct backend {
         }
 
     };
+
+    /// perform a sample of the current time step
+    static void sample_step(
+        size_t samples_per_handle,
+        size_t n_active_measurements,
+        double time,
+        view data,
+        view start,
+        view dt,
+        pview adres
+    )
+    {
+    
+    }
+
 
     /// Hines solver interface
     static void hines_solve(
@@ -219,6 +235,24 @@ void matrix_solve(matrix_solve_param_pack<T, I> params) {
             rhs[i] /= d[i];
         }
     }
+}
+
+/// GPU implementation of sampler
+template <typename T, typename I>
+__global__
+void sample_step(
+    size_t samples_per_handle,
+    size_t n_active_measurements,
+    double *data,
+    const double **adress,
+    const double * dt,
+    const double * start
+    ) {
+    auto tid = threadIdx.x + blockDim.x*blockIdx.x;
+
+
+    __syncthreads();
+
 }
 
 /// GPU implementatin of Hines matrix assembly
