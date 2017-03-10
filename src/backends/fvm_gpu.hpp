@@ -275,12 +275,28 @@ void sample_step_gpu(
     I * n_samples,
     const double * start,
     const double * dt,
-    const double **adress
+    const double **address
     ) {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
+    if (tid >= 200)
+        return;
+    double sample_time = start[tid];
+    double lower_window = start[tid] - previous_dt;
+    double dt_local = dt[tid];
 
+    while (sample_time < time)
+    {
+        if (sample_time >= lower_window) // We should record this sample
+        {
+            int adress_in_output = tid * samples_per_handle + n_samples[tid];
+            data[adress_in_output] = *(address[tid]);
 
-    //__syncthreads();
+            n_samples[tid] ++;
+            break;
+        }
+        sample_time += dt_local; // So the longer the simulation the longer this will take 
+        //TODO FIXME BUG 
+    }
 
 }
 

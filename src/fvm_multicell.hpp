@@ -112,7 +112,7 @@ public:
     {
         // Create data structure for samples
         // size = epoch / min(sample dts) * prb 
-
+        
         n_active_measurements = probe_data_.size();
 
         // make_const_view(tmp_face_conductance)
@@ -122,15 +122,17 @@ public:
         std::vector<const double*> tmp_probe_adress(n_active_measurements,NULL);
 
         value_type min_sample_dt = 9999.0;  // very big number
+        int idx = 0;  // Ugly but it has to be done
         for (auto items : probe_data_) {
-            tmp_probe_start.push_back(std::get<0>(items.second));
+            tmp_probe_start[idx] = std::get<0>(items.second);
 
             auto dt = std::get<1>(items.second);
             if (dt < min_sample_dt) {
                 min_sample_dt = dt;
             }
-            tmp_probe_dt.push_back(dt);
-            tmp_probe_adress.push_back(std::get<2>(items.second));
+            tmp_probe_dt[idx] = dt;
+            tmp_probe_adress[idx] = std::get<2>(items.second);
+            ++idx;
         }
 
         h_probe_start_ = memory::make_const_view(tmp_probe_start);
