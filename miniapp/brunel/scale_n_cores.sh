@@ -23,9 +23,9 @@ run() {
     # Use multithreading for 36 cores and otherwise no.
     if [ $n_core -eq 36 ]
     then
-        srun -n $n_rank -c $n_core NMC_NUM_THREADS=$n_core ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
+        srun -n $n_rank -c $n_core NMC_NUM_THREADS=$n_core ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -e $n_ext -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
     else
-        srun -n $n_rank -c $n_core --hint=nomultithread NMC_NUM_THREADS=$n_core ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
+        srun -n $n_rank -c $n_core --hint=nomultithread NMC_NUM_THREADS=$n_core ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -e $n_ext -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
     fi
 }
 
