@@ -99,7 +99,7 @@ public:
         // Add incoming inhibitory connections.
         for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
             cell_member_type source{cell_gid_type(i), 0};
-            cell_member_type target{gid, 0};
+            cell_member_type target{gid, 1};
             cell_connection conn(source, target, weight_inh_, delay_);
             connections.push_back(conn);
         }
