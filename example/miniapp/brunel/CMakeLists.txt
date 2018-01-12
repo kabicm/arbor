@@ -7,7 +7,7 @@ set(MINIAPP_SOURCES
 
 add_executable(brunel_miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 
-target_link_libraries(brunel_miniapp.exe LINK_PUBLIC ${NESTMC_LIBRARIES})
+target_link_libraries(brunel_miniapp.exe LINK_PUBLIC ${ARB_LIBRARIES})
 target_link_libraries(brunel_miniapp.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
 if(NMC_WITH_MPI)
@@ -17,5 +17,5 @@ endif()
 
 set_target_properties(brunel_miniapp.exe
    PROPERTIES
-   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/miniapp/brunel"
+   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/example/miniapp/brunel"
 )

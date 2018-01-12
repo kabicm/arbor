@@ -12,15 +12,14 @@
 #include "io.hpp"
 
 // Let TCLAP understand value arguments that are of an optional type.
-
 namespace TCLAP {
     template <typename V>
-    struct ArgTraits<nest::mc::util::optional<V>> {
+    struct ArgTraits<arb::util::optional<V>> {
         using ValueCategory = ValueLike;
     };
 } // namespace TCLAP
 
-namespace arbor {
+namespace arb {
     namespace util {
         // Using static here because we do not want external linkage for this operator.
         template <typename V>
