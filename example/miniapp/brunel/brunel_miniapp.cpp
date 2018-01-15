@@ -14,6 +14,7 @@
 #include <lif_cell_description.hpp>
 #include <load_balance.hpp>
 #include <model.hpp>
+#include <partitioner.hpp>
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
 #include <recipe.hpp>
@@ -230,7 +231,7 @@ int main(int argc, char** argv) {
                         options.file_extension, options.over_write);
         };
 
-        auto decomp = partition_load_balance(recipe, nd);
+        auto decomp = decompose(recipe, group_size);
         model m(recipe, decomp);
 
         // Initialize the spike exporting interface
