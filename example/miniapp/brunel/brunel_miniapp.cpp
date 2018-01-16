@@ -14,7 +14,7 @@
 #include <lif_cell_description.hpp>
 #include <load_balance.hpp>
 #include <model.hpp>
-#include <partitioner.hpp>
+#include "partitioner.hpp"
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
 #include <recipe.hpp>

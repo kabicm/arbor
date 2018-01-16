@@ -31,24 +31,26 @@ namespace arb {
         // Global load balance
         std::vector<cell_gid_type> gid_divisions;
         auto gid_part = make_partition(
-            gid_divisions, transform_view(make_span(0, num_domains), dom_size));
+            gid_divisions, util::transform_view(util::make_span(0, num_domains), dom_size));
 
         auto range = gid_part[domain_id];
         cell_size_type num_local_cells = range.second - range.first;
 
-        int num_groups = num_local_cells / group_size + (num_local_cells%group_size== 0 ? 0 : 1);
-        std::vector<group_description> groups(num_groups);
+        unsigned num_groups = num_local_cells / group_size + (num_local_cells%group_size== 0 ? 0 : 1);
+        std::vector<group_description> groups;
 
-        for (int i = 0; i < num_groups; ++i) {
-            unsigned start = i * num_groups;
+        // Local load balance
+        // i.e. all the groups that the current rank (domain) owns
+        for (unsigned i = 0; i < num_groups; ++i) {
+            unsigned start = i * group_size;
             unsigned end = std::min(start + group_size, num_local_cells);
             std::vector<cell_gid_type> group_elements;
 
-            for (int j = start; j < end; ++j) {
+            for (unsigned j = start; j < end; ++j) {
                 group_elements.push_back(j);
             }
 
-            groups[i] = {i, std::move(group_elements), backend_kind::multicore};
+            groups.push_back({cell_kind::lif_neuron, std::move(group_elements), backend_kind::multicore});
         }
 
         domain_decomposition d;
