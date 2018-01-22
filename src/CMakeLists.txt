@@ -39,6 +39,7 @@ set(CUDA_SOURCES
     backends/gpu/kernels/take_samples.cu
     backends/gpu/kernels/test_thresholds.cu
     backends/gpu/kernels/time_ops.cu
+    lif_cell_group_gpu.cu
 )
 
 if(ARB_WITH_MPI)

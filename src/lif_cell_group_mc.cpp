@@ -88,7 +88,7 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
         // if there are events that happened at the same time as this event, process them as well
         while (i + 1 < event_lane.size() && event_lane[i+1].time <= time) {
             weight += event_lane[i+1].weight;
-            i++;
+            ++i;
         }
 
         // Let the membrane potential decay.
